@@ -29,6 +29,7 @@
   .wrap { max-width: 960px; margin: 0 auto; padding: 28px 24px 80px; }
 
   header.bar { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+  a.mark { color: inherit; text-decoration: none; }
   .mark { display: flex; align-items: center; gap: 9px; font-weight: 650; font-size: 19px; letter-spacing: -0.015em; }
   .mark svg { display: block; }
   .tagline { color: var(--muted); font-size: 13.5px; }
@@ -156,7 +157,7 @@
 <body>
 <div class="wrap">
   <header class="bar">
-    <span class="mark">
+    <a class="mark" href="https://zedongpeng.com/" title="Zedong Peng">
       <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true">
         <rect width="32" height="32" rx="7" fill="#1f211e"/>
         <rect x="7" y="17" width="4" height="8" rx="1" fill="#2a78d6"/>
@@ -164,8 +165,10 @@
         <rect x="21" y="7" width="4" height="18" rx="1" fill="#eda100"/>
       </svg>
       tokendust
+    </a>
+    <span class="tagline">
+      <a href="https://zedongpeng.com/">← zedongpeng.com</a>
     </span>
-    <span class="tagline">what your AI actually costs</span>
   </header>
 
   <h1>How much AI do you actually use?</h1>
