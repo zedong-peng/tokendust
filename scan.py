@@ -459,7 +459,7 @@ def main():
         path, len(rows), compact(tokens), ", ".join(sorted(served)) or "nothing"))
     for error in errors:
         print("  skipped " + error, file=sys.stderr)
-    print("Next: open index.html and drop the file on it.")
+    print("Next: drop it on https://%s/ (nothing is uploaded)." % BRAND["url"])
 
 
 def name_has_rows(rows, tool):

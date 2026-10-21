@@ -24,23 +24,25 @@ Next: open index.html and drop the file on it.
 
 ## Quick start
 
-1. **Scan each machine.** Save `scan.py` anywhere and run it. macOS, Linux and Windows; Python 3.8+
-   and nothing else. No `pip install`, no Node, no account.
+1. **Scan each machine.** One command, no install. macOS, Linux and Windows; Python 3.8+ and
+   nothing else — no `pip install`, no Node, no account.
 
    ```bash
-   python3 scan.py                    # every agent found on this machine, last 400 days
-   python3 scan.py --days 90          # shorter window
-   python3 scan.py --cursor           # also read Cursor's dashboard (one network call)
+   curl -fsSL https://zedongpeng.com/assets/tokendust/scan.py | python3 -
    ```
 
-   It writes `tokendust-<hostname>.json` next to itself. That file holds daily totals per tool and
+   Flags go after the dash: `... | python3 - --days 90`, or `--cursor` to also read Cursor's
+   dashboard (the only network call). Prefer a file? `curl -fsSLO https://zedongpeng.com/assets/tokendust/scan.py`
+   then `python3 scan.py`.
+
+   It writes `tokendust-<hostname>.json` where you ran it. That file holds daily totals per tool and
    model — no prompts, no paths, no project names, no session ids.
 
 2. **Drop the files on the board.** Open [`index.html`](index.html) (double-click works, no server)
    and drop one file per machine. The board sums them and prices the tokens.
 
-   Or skip step 1 on a machine without Python: the same board is live at
-   **[zedongpeng.com/tokendust](https://zedongpeng.com/tokendust)**.
+   The board is live at **[zedongpeng.com/tokendust](https://zedongpeng.com/tokendust)** — you do
+   not need to clone anything.
 
 3. **Take the card.** Two formats, 1200×630 for X/LinkedIn and 1080×1350 for stories. Download PNG
    or copy the image straight to the clipboard.

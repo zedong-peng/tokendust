@@ -37,6 +37,31 @@
   h1 { font-size: 30px; line-height: 1.2; letter-spacing: -0.02em; margin: 34px 0 10px; font-weight: 680; }
   .lede { color: var(--muted); max-width: 40rem; margin: 0; }
 
+  /* ---------- the command ---------- */
+  .get {
+    margin-top: 24px; border: 1px solid var(--line); border-radius: 10px;
+    background: var(--card); padding: 14px 16px 12px;
+  }
+  .get-head { display: flex; align-items: center; gap: 9px; font-size: 13.5px; font-weight: 560; }
+  .get-step {
+    display: inline-grid; place-items: center; width: 19px; height: 19px; border-radius: 50%;
+    background: var(--ink); color: #fff; font-size: 11px; font-weight: 650; flex-shrink: 0;
+  }
+  .get-copy {
+    margin-left: auto; font: inherit; font-size: 12px; font-weight: 500; cursor: pointer;
+    border: 1px solid var(--line); background: var(--paper); color: var(--muted);
+    border-radius: 6px; padding: 3px 9px;
+  }
+  .get-copy:hover { color: var(--ink); border-color: #c3c7bc; }
+  .get-cmd {
+    margin: 10px 0 0; padding: 12px 14px; border-radius: 7px; background: #1f211e; color: #eef0ea;
+    font: 12.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+    overflow-x: auto; white-space: pre; tab-size: 2;
+  }
+  .get-cmd code { background: none; border: 0; padding: 0; color: inherit; font: inherit; }
+  .get-note { margin: 10px 0 0; font-size: 12.5px; color: var(--muted); line-height: 1.7; }
+  .get-note a { color: var(--ink); }
+
   /* ---------- drop zone ---------- */
   .drop {
     margin-top: 26px; border: 1.5px dashed #d3d6cd; border-radius: 12px;
@@ -145,19 +170,36 @@
 
   <h1>How much AI do you actually use?</h1>
   <p class="lede">
-    Run <code>scan.py</code> on each machine you code on, then drop the files here. The board sums
-    them, prices the tokens at API list rates, and draws one shareable card. Everything happens in
-    this tab — no upload, no account, no server.
+    One command per machine, then drop the files here. The board sums them, prices the tokens at
+    API list rates, and draws one shareable card. The scan happens on your machine and the merge
+    happens in this tab — nothing is uploaded, and there is no account.
   </p>
 
+  <div class="get" id="get">
+    <div class="get-head">
+      <span class="get-step">1</span>
+      <span>Run this on each machine you code on</span>
+      <button type="button" class="get-copy" id="copy-cmd">Copy</button>
+    </div>
+    <pre class="get-cmd" id="cmd"><code>curl -fsSL https://zedongpeng.com/assets/tokendust/scan.py | python3 -</code></pre>
+    <p class="get-note">
+      Python 3.8+, nothing to install, reads the logs already on disk. Writes
+      <code>tokendust-&lt;machine&gt;.json</code> next to you. Add <code>--cursor</code> to include
+      Cursor&rsquo;s dashboard (the only network call). Prefer a file?
+      <a href="https://zedongpeng.com/assets/tokendust/scan.py">Download scan.py</a>.
+    </p>
+  </div>
+
   <div class="drop" id="drop">
-    <h2>Drop your <code>tokendust-*.json</code> files</h2>
-    <p>One per machine. Repeated scans of the same machine are fine.</p>
+    <div class="get-head">
+      <span class="get-step">2</span>
+      <span>Drop the <code>tokendust-*.json</code> files here</span>
+    </div>
+    <p>One per machine. Repeated scans of the same machine are fine &mdash; the board keeps the larger count.</p>
     <p class="cmd">
       <button type="button" id="pick">Choose files</button>
       <input type="file" id="file" accept=".json,application/json" multiple hidden />
     </p>
-    <p class="cmd hint-line">No file yet? <code>python3 scan.py</code> in this folder writes one.</p>
   </div>
 
   <section id="report" aria-live="polite">
@@ -3242,6 +3284,24 @@ async function addFiles(fileList) {
   refresh();
   if (problems.length) alert("Could not read:\n" + problems.join("\n"));
 }
+
+$("copy-cmd").addEventListener("click", async (event) => {
+  const button = event.currentTarget;
+  const text = $("cmd").textContent.trim();
+  try {
+    await navigator.clipboard.writeText(text);
+    button.textContent = "Copied";
+  } catch (error) {
+    /* Clipboard needs a secure context or file:// in some browsers: select it instead. */
+    const range = document.createRange();
+    range.selectNodeContents($("cmd"));
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    button.textContent = "Selected — press ⌘C";
+  }
+  setTimeout(() => (button.textContent = "Copy"), 2200);
+});
 
 $("pick").addEventListener("click", () => $("file").click());
 $("file").addEventListener("change", (event) => {
