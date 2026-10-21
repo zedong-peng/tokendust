@@ -39,6 +39,9 @@ Next: open index.html and drop the file on it.
 2. **Drop the files on the board.** Open [`index.html`](index.html) (double-click works, no server)
    and drop one file per machine. The board sums them and prices the tokens.
 
+   Or skip step 1 on a machine without Python: the same board is live at
+   **[zedongpeng.com/tokendust](https://zedongpeng.com/tokendust)**.
+
 3. **Take the card.** Two formats, 1200×630 for X/LinkedIn and 1080×1350 for stories. Download PNG
    or copy the image straight to the clipboard.
 
@@ -116,5 +119,12 @@ template, never the build output.
 Every card prints the wordmark top-left, the link top-right, a `made with tokendust` line in the
 footer, and a QR code to the board. That is deliberate: the picture has to answer "where do I get
 this?" without a caption. If you fork it and keep the name, read the license first.
+
+## Why every card carries the name
+
+A tool like this spreads by screenshot. The card puts the wordmark, the link and a QR code on the
+image itself, so a post that quotes a number also answers "what is this and where do I get one" —
+without the poster having to add a caption. Deleting those lines is one edit; keeping them is what
+makes the project findable.
 
 MIT © Zedong Peng
