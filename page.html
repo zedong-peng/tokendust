@@ -1,0 +1,1089 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>tokendust — what your AI actually costs</title>
+<meta name="description" content="Drop the token usage of every machine you code on and get one picture: tokens, list price, one share card. Nothing leaves the browser." />
+<meta property="og:title" content="tokendust" />
+<meta property="og:description" content="What your AI actually costs." />
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%231f211e'/><rect x='7' y='17' width='4' height='8' rx='1' fill='%232a78d6'/><rect x='14' y='12' width='4' height='13' rx='1' fill='%231baf7a'/><rect x='21' y='7' width='4' height='18' rx='1' fill='%23eda100'/></svg>" />
+<style>
+  :root {
+    color-scheme: light;
+    --ink: #1f211e;
+    --muted: #6b7067;
+    --line: #e3e5df;
+    --paper: #fbfbf9;
+    --card: #ffffff;
+    --accent: #2a78d6;
+    --s0: #2a78d6; --s1: #1baf7a; --s2: #4a3aa7;
+    --s3: #e34948; --s4: #eda100; --s5: #008300; --s6: #c9ccc4;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--paper); color: var(--ink);
+    font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 28px 24px 80px; }
+
+  header.bar { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; }
+  .mark { display: flex; align-items: center; gap: 9px; font-weight: 650; font-size: 19px; letter-spacing: -0.015em; }
+  .mark svg { display: block; }
+  .tagline { color: var(--muted); font-size: 13.5px; }
+  .tagline a { color: inherit; }
+
+  h1 { font-size: 30px; line-height: 1.2; letter-spacing: -0.02em; margin: 34px 0 10px; font-weight: 680; }
+  .lede { color: var(--muted); max-width: 40rem; margin: 0; }
+
+  /* ---------- drop zone ---------- */
+  .drop {
+    margin-top: 26px; border: 1.5px dashed #d3d6cd; border-radius: 12px;
+    background: var(--card); padding: 44px 28px; text-align: center;
+    transition: border-color .15s, background-color .15s;
+  }
+  .drop.is-over { border-color: var(--accent); background: #f4f8fe; }
+  .drop h2 { font-size: 17px; margin: 0 0 6px; font-weight: 620; }
+  .drop p { margin: 0; color: var(--muted); font-size: 13.5px; }
+  .drop code, .hint code {
+    font: 12.5px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: #f1f2ee; border: 1px solid var(--line); border-radius: 5px;
+    padding: 1px 5px; color: #33362f;
+  }
+  .drop .cmd { margin-top: 16px; }
+  .drop button, .btn {
+    font: inherit; font-size: 13.5px; font-weight: 560; cursor: pointer;
+    border: 1px solid var(--line); background: var(--card); color: var(--ink);
+    border-radius: 7px; padding: 8px 14px;
+  }
+  .drop button:hover, .btn:hover { border-color: #c3c7bc; }
+  .btn.primary { background: var(--ink); border-color: var(--ink); color: #fff; }
+  .btn.primary:hover { background: #33362f; }
+
+  /* ---------- results ---------- */
+  #report { display: none; }
+  #report.is-on { display: block; }
+
+  .stats { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 34px; margin: 30px 0 0; }
+  .stat .k { font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); }
+  .stat .v { font-size: 34px; font-weight: 660; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; line-height: 1.15; }
+  .stat .v small { font-size: 15px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+
+  .controls { display: flex; align-items: center; gap: 4px; margin: 26px 0 0; flex-wrap: wrap; }
+  .controls .sp { flex: 1; }
+  .seg { display: flex; gap: 2px; background: #f0f1ec; border-radius: 7px; padding: 2px; }
+  .seg button {
+    font: inherit; font-size: 12.5px; border: 0; background: none; color: var(--muted);
+    padding: 4px 10px; border-radius: 5px; cursor: pointer;
+  }
+  .seg button[aria-pressed="true"] { background: var(--card); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.07); }
+
+  .board { position: relative; margin-top: 14px; }
+  .board canvas { display: block; width: 100%; height: auto; border-radius: 8px; }
+  .tip {
+    position: absolute; top: 0; z-index: 2; width: max-content; max-width: min(420px, 100%);
+    padding: 10px 12px; background: #fff; border: 1px solid var(--line); border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0,0,0,.1); font-size: 12px; pointer-events: none;
+    font-variant-numeric: tabular-nums;
+  }
+  .tip .head { display: flex; justify-content: space-between; gap: 16px; padding-bottom: 6px; margin-bottom: 4px; border-bottom: 1px solid var(--line); }
+  .tip .head span { color: var(--muted); }
+  .tip .list { display: grid; grid-template-columns: minmax(0, auto) auto auto auto; column-gap: 14px; }
+  .tip .row { display: contents; }
+  .tip .row > * { padding: 2px 0; color: var(--muted); }
+  .tip b { text-align: right; color: var(--ink); font-weight: 560; }
+  .tip .usd { text-align: right; }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 7px 22px; margin: 14px 0 0; padding: 0; list-style: none; font-size: 12.5px; color: var(--muted); }
+  .legend li { display: flex; align-items: baseline; gap: 6px; }
+  .legend small { opacity: .75; font-variant-numeric: tabular-nums; }
+  .dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; flex-shrink: 0; align-self: center; }
+
+  .machines { margin: 22px 0 0; padding: 0; list-style: none; font-size: 13px; color: var(--muted); }
+  .machines li { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); }
+  .machines li b { color: var(--ink); font-weight: 560; }
+  .machines li .grow { flex: 1; }
+  .machines button { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 15px; line-height: 1; padding: 2px 4px; }
+  .machines button:hover { color: var(--s3); }
+
+  /* ---------- share ---------- */
+  .share { margin-top: 34px; padding: 22px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .share h2 { margin: 0 0 4px; font-size: 16px; font-weight: 640; }
+  .share p.sub { margin: 0 0 16px; color: var(--muted); font-size: 13px; }
+  .share nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+  .card-preview { border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+  .card-preview canvas { display: block; width: 100%; height: auto; }
+  .share .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+
+  .hint { margin-top: 26px; color: var(--muted); font-size: 13px; }
+  .hint dt { font-weight: 600; color: var(--ink); font-size: 12.5px; margin-top: 12px; }
+  .hint dd { margin: 2px 0 0; }
+  footer.site { margin-top: 56px; border-top: 1px solid var(--line); padding-top: 18px; font-size: 12.5px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 8px 20px; }
+  footer.site a { color: inherit; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  @media (max-width: 640px) {
+    h1 { font-size: 24px; }
+    .stat .v { font-size: 27px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="bar">
+    <span class="mark">
+      <svg width="22" height="22" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="7" fill="#1f211e"/>
+        <rect x="7" y="17" width="4" height="8" rx="1" fill="#2a78d6"/>
+        <rect x="14" y="12" width="4" height="13" rx="1" fill="#1baf7a"/>
+        <rect x="21" y="7" width="4" height="18" rx="1" fill="#eda100"/>
+      </svg>
+      tokendust
+    </span>
+    <span class="tagline">what your AI actually costs</span>
+  </header>
+
+  <h1>How much AI do you actually use?</h1>
+  <p class="lede">
+    Run <code>scan.py</code> on each machine you code on, then drop the files here. The board sums
+    them, prices the tokens at API list rates, and draws one shareable card. Everything happens in
+    this tab — no upload, no account, no server.
+  </p>
+
+  <div class="drop" id="drop">
+    <h2>Drop your <code>tokendust-*.json</code> files</h2>
+    <p>One per machine. Repeated scans of the same machine are fine.</p>
+    <p class="cmd">
+      <button type="button" id="pick">Choose files</button>
+      <input type="file" id="file" accept=".json,application/json" multiple hidden />
+    </p>
+    <p class="cmd hint-line">No file yet? <code>python3 scan.py</code> in this folder writes one.</p>
+  </div>
+
+  <section id="report" aria-live="polite">
+    <div class="stats" id="stats"></div>
+
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Time range">
+        <button type="button" data-range="60" aria-pressed="true">60 days</button>
+        <button type="button" data-range="365" aria-pressed="false">1 year</button>
+        <button type="button" data-range="0" aria-pressed="false">All</button>
+      </div>
+      <span class="sp"></span>
+      <button type="button" class="btn" id="clear">Clear files</button>
+    </div>
+
+    <div class="board" id="board">
+      <canvas id="chart" width="960" height="260" role="img" aria-label="Tokens per day"></canvas>
+      <div class="tip" id="tip" hidden></div>
+    </div>
+    <ul class="legend" id="legend"></ul>
+    <ul class="machines" id="machines"></ul>
+  </section>
+
+  <section class="share" id="share" hidden>
+    <h2>Your share card</h2>
+    <p class="sub">Carries the tokendust name and link, so the picture answers “how did you make this?” without a caption.</p>
+    <nav role="group" aria-label="Card format">
+      <button type="button" class="btn" data-format="wide" aria-pressed="true">Wide · 1200×630</button>
+      <button type="button" class="btn" data-format="tall" aria-pressed="false">Tall · 1080×1350</button>
+    </nav>
+    <div class="card-preview"><canvas id="card" width="1200" height="630"></canvas></div>
+    <div class="actions">
+      <button type="button" class="btn primary" id="download">Download PNG</button>
+      <button type="button" class="btn" id="copy">Copy image</button>
+      <span class="hint" id="copy-note" aria-live="polite"></span>
+    </div>
+  </section>
+
+  <dl class="hint">
+    <dt>What is counted</dt>
+    <dd>Claude Code, Codex, OpenCode and Gemini CLI read their local logs; Cursor is read from its
+      dashboard when you pass <code>--cursor</code>. Anything that only exists in a browser has no
+      local log, so it is not counted — a flat subscription is not a token count.</dd>
+    <dt>Why the dollars are not your bill</dt>
+    <dd>Every number is priced at the official API list rate. On a subscription the real bill is
+      smaller, sometimes by a lot. The point is the quantity, not the invoice.</dd>
+    <dt>Already use ccusage?</dt>
+    <dd>Drop its <code>daily --json --by-agent</code> output instead; the board reads that too.</dd>
+  </dl>
+
+  <footer class="site">
+    <span><b>tokendust</b> — what your AI actually costs.</span>
+    <a href="https://zedongpeng.com/tokendust">zedongpeng.com/tokendust</a>
+    <span>Nothing leaves this page.</span>
+  </footer>
+</div>
+
+<script src="vendor/qrcode.js"></script>
+<script>
+/* ---------------------------------------------------------------------------
+ * Brand. These four lines are the whole identity: the scanner writes them into
+ * every snapshot, the card prints them, the page shows them. Change here (and in
+ * scan.py) to rebrand.
+ * ------------------------------------------------------------------------- */
+const BRAND = {
+  name: "tokendust",
+  tagline: "what your AI actually costs",
+  url: "zedongpeng.com/tokendust",
+  handle: "",
+};
+const BRAND_LINK = "https://" + BRAND.url.replace(/^https?:\/\//, "");
+
+/* Official standard-tier USD per 1M tokens: [input, cache_read, cache_write, output].
+ * Checked 2026-09-30. Drop a prices.json file on the page to override. */
+const PRICES = __PRICES__;
+
+const TOOL_NAMES = {
+  "claude-code": "Claude Code", codex: "Codex", cursor: "Cursor",
+  opencode: "OpenCode", gemini: "Gemini CLI", copilot: "Copilot",
+  qwen: "Qwen", kimi: "Kimi", pi: "pi", amp: "Amp", grok: "Grok",
+  goose: "Goose", droid: "Droid", kilo: "Kilo", zcode: "Zcode",
+  openclaw: "OpenClaw",
+};
+const SLOT_COLORS = ["#2a78d6", "#1baf7a", "#4a3aa7", "#e34948", "#eda100", "#008300", "#c9ccc4"];
+const SERIES = 6;
+const DAY = 86400000;
+const WEEKLY_AFTER_DAYS = 120;
+const DAY_THRESHOLD = 1e9;
+const LINEAR_SHARE = 0.8;
+
+/* ------------------------------------------------------------------ format */
+const nf = (options) => new Intl.NumberFormat("en-US", options);
+const compactFmt = nf({ notation: "compact", maximumSignificantDigits: 3 });
+const compact = (v) => compactFmt.format(v);
+const usdFmt = nf({ maximumFractionDigits: 0 });
+const usd = (v) => "$" + usdFmt.format(Math.round(v));
+const price = (v) => (v === null ? "—" : v > 0 && v < 1 ? "<$1" : usd(v));
+const pct = (v) =>
+  v === null ? "—" : v > 0 && v < 0.005 ? "<1%" : Math.round(v * 100) + "%";
+const iso = (t) => new Date(t).toISOString().slice(0, 10);
+const addDays = (d, n) => iso(Date.parse(d + "T00:00:00Z") + n * DAY);
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const dayLabel = (d) => MONTHS[+d.slice(5, 7) - 1] + " " + +d.slice(8);
+const monthYear = (d) => MONTHS[+d.slice(5, 7) - 1] + " " + d.slice(0, 4);
+const tokensOf = (r) => r.input + r.cache_read + r.cache_write + r.output;
+const slotColor = (s) => SLOT_COLORS[Math.min(s, SLOT_COLORS.length - 1)];
+const toolName = (t) => TOOL_NAMES[t] || t;
+
+function weekStart(date) {
+  const days = Math.round(Date.parse(date + "T00:00:00Z") / DAY);
+  return addDays(date, -((days + 3) % 7));
+}
+
+/* -------------------------------------------------------------------- data */
+
+/** Accept tokendust/1, the blog's ai-usage schema, or ccusage daily JSON. */
+function parseSnapshot(text, fallbackHost) {
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (error) {
+    throw new Error("not JSON");
+  }
+  if (data && data.schema === "tokendust/1") {
+    return { host: data.host || fallbackHost, rows: (data.rows || []).map(normalizeRow), generatedAt: data.generated_at, brand: data.brand };
+  }
+  if (data && data.schema_version === 1 && Array.isArray(data.rows) && Array.isArray(data.columns)) {
+    const rows = data.rows.map((values) =>
+      Object.fromEntries(data.columns.map((key, i) => [key, values[i]])),
+    );
+    return { host: fallbackHost || "this-machine", rows: rows.map(normalizeRow), generatedAt: data.updated_at };
+  }
+  if (data && Array.isArray(data.daily)) return { host: fallbackHost || "ccusage", rows: ccusageRows(data) };
+  if (data && (data.prices || Array.isArray(data.models))) return { prices: data.prices || data.models };
+  throw new Error("unknown file");
+}
+
+/** One row shape everywhere: tokendust objects, blog arrays, or ccusage output. */
+function normalizeRow(r) {
+  if (Array.isArray(r)) {
+    return {
+      date: r[0], tool: r[1], model: r[2],
+      requests: r[3] || 0, input: r[4] || 0, cache_read: r[5] || 0,
+      cache_write: r[6] || 0, output: r[7] || 0,
+      recorded_cost: r[8] ?? null,
+    };
+  }
+  return {
+    date: String(r.date || "").slice(0, 10),
+    tool: r.tool || "unknown",
+    model: r.model || "unknown",
+    requests: r.requests || 0,
+    input: r.input || 0,
+    cache_read: r.cache_read || 0,
+    cache_write: r.cache_write || 0,
+    output: r.output || 0,
+    recorded_cost: r.recorded_cost ?? r.api_usd ?? null,
+  };
+}
+
+const CCUSAGE_TOOLS = {
+  claude: "claude-code", "claude-code": "claude-code", codex: "codex",
+  opencode: "opencode", cursor: "cursor", gemini: "gemini", copilot: "copilot",
+  qwen: "qwen", kimi: "kimi", amp: "amp", pi: "pi", grok: "grok",
+};
+
+function ccusageRows(payload) {
+  const rows = [];
+  for (const day of payload.daily || []) {
+    const agents = day.agents || [{ agent: day.agent || "all", modelBreakdowns: day.modelBreakdowns || [] }];
+    for (const agent of agents) {
+      const tool = CCUSAGE_TOOLS[String(agent.agent || "").toLowerCase()] || String(agent.agent || "unknown");
+      for (const b of agent.modelBreakdowns || []) {
+        const model = String(b.modelName || "unknown").replace(/^\[[^\]]+\]\s*/, "").trim().toLowerCase();
+        const row = {
+          date: day.period, tool, model, requests: 0,
+          input: b.inputTokens || 0, cache_read: b.cacheReadTokens || 0,
+          cache_write: b.cacheCreationTokens || 0, output: b.outputTokens || 0,
+          recorded_cost: b.cost > 0 ? b.cost : null,
+        };
+        if (tokensOf(row)) rows.push(row);
+      }
+    }
+  }
+  return rows;
+}
+
+/** Same machine twice: keep the larger count. Different machines: sum. */
+function mergeHosts(files) {
+  const byHost = new Map();
+  for (const file of files) {
+    const host = byHost.get(file.host) || new Map();
+    for (const row of file.rows) {
+      const key = row.date + "|" + row.tool + "|" + row.model;
+      const old = host.get(key);
+      if (!old || tokensOf(row) > tokensOf(old)) host.set(key, row);
+    }
+    byHost.set(file.host, host);
+  }
+  const combined = new Map();
+  for (const [hostName, host] of byHost) {
+    for (const [key, row] of host) {
+      const old = combined.get(key);
+      if (!old) {
+        combined.set(key, { ...row, hosts: [hostName] });
+        continue;
+      }
+      for (const field of ["requests", "input", "cache_read", "cache_write", "output"]) old[field] += row[field];
+      old.recorded_cost =
+        old.recorded_cost === null || row.recorded_cost === null
+          ? null
+          : old.recorded_cost + row.recorded_cost;
+      old.hosts.push(hostName);
+    }
+  }
+  const rows = [...combined.values()].sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+  return { rows, hosts: [...byHost.keys()] };
+}
+
+function priceOf(prices, model) {
+  const table = prices || PRICES;
+  const lookup = (name) => {
+    if (table[name]) return table[name];
+    const alias = (table._aliases || {})[name];
+    return alias && table[alias] ? table[alias] : null;
+  };
+  for (const name of modelChain(model)) {
+    const found = lookup(name);
+    if (found) return found;
+  }
+  return null;
+}
+
+/** claude-opus-5-thinking-medium -> claude-opus-5, the way the scanner names Cursor models. */
+function modelChain(model) {
+  const name0 = String(model || "unknown");
+  const chain = [name0];
+  let name = name0;
+  while (true) {
+    const base = name.replace(/-(thinking|fast|low|medium|high|xhigh|max)$/, "");
+    if (base === name) return chain;
+    name = base;
+    chain.push(name);
+  }
+}
+
+function withCost(rows, prices) {
+  return rows.map((row) => {
+    const rate = priceOf(prices, row.model);
+    const api = rate
+      ? (row.input * rate[0] + row.cache_read * rate[1] + row.cache_write * rate[2] + row.output * rate[3]) / 1e6
+      : null;
+    return Object.assign({}, row, { api_usd: api });
+  });
+}
+
+/* --------------------------------------------------------------- summarize */
+function slots(rows) {
+  const totals = new Map();
+  for (const row of rows) totals.set(row.model, (totals.get(row.model) || 0) + tokensOf(row));
+  return new Map(
+    [...totals]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, SERIES)
+      .map(([model], i) => [model, i]),
+  );
+}
+
+function summarize(rows, days, slotMap) {
+  const all = rows.map((r) => r.date).sort();
+  if (!all.length) return null;
+  const end = all[all.length - 1];
+  const start = days ? addDays(end, 1 - days) : all[0];
+  const inRange = rows.filter((r) => r.date >= start && r.date <= end);
+  const dates = [];
+  for (let d = start; d <= end; d = addDays(d, 1)) dates.push(d);
+  const weekly = dates.length > WEEKLY_AFTER_DAYS;
+  const buckets = [];
+  const bucketOf = new Map();
+  for (const d of dates) {
+    const key = weekly ? weekStart(d) : d;
+    let bucket = bucketOf.get(key);
+    if (!bucket) {
+      bucket = { key, start: d, end: d };
+      bucketOf.set(key, bucket);
+      buckets.push(bucket);
+    }
+    bucket.end = d;
+  }
+  const bucketKey = (d) => (weekly ? weekStart(d) : d);
+  const series = Array.from({ length: SERIES + 1 }, () => new Map(buckets.map((b) => [b.key, 0])));
+  const models = new Map();
+  const tools = new Map();
+  const byDay = new Map(buckets.map((b) => [b.key, new Map()]));
+  const total = { tokens: 0, usd: 0, unpriced: 0 };
+  for (const row of inRange) {
+    const tokens = tokensOf(row);
+    const slot = slotMap.has(row.model) ? slotMap.get(row.model) : SERIES;
+    const day = bucketKey(row.date);
+    series[slot].set(day, series[slot].get(day) + tokens);
+    const model = models.get(row.model) || { model: row.model, slot, tokens: 0, usd: 0, priced: true };
+    model.tokens += tokens;
+    if (row.api_usd === null) model.priced = false;
+    else model.usd += row.api_usd;
+    models.set(row.model, model);
+    tools.set(row.tool, (tools.get(row.tool) || 0) + tokens);
+    const entry = byDay.get(day).get(row.model + "|" + row.tool) || {
+      model: row.model, tool: row.tool, slot, tokens: 0, usd: 0,
+    };
+    entry.tokens += tokens;
+    entry.usd = entry.usd === null || row.api_usd === null ? null : entry.usd + row.api_usd;
+    byDay.get(day).set(row.model + "|" + row.tool, entry);
+    total.tokens += tokens;
+    if (row.api_usd !== null) total.usd += row.api_usd;
+    else total.unpriced += tokens;
+  }
+  return {
+    start, end, weekly, buckets,
+    dates: buckets.map((b) => b.key),
+    series, total,
+    byDay: new Map([...byDay].map(([k, v]) => [k, [...v.values()].sort((a, b) => b.tokens - a.tokens)])),
+    models: [...models.values()].sort((a, b) => b.tokens - a.tokens),
+    tools: [...tools].sort((a, b) => b[1] - a[1]),
+  };
+}
+
+function legendEntries(view) {
+  const entries = new Map();
+  for (const model of view.models) {
+    const entry = entries.get(model.slot) || { slot: model.slot, model: model.model, tokens: 0, usd: 0 };
+    entry.tokens += model.tokens;
+    entry.usd = entry.usd === null || !model.priced ? null : entry.usd + model.usd;
+    entries.set(model.slot, entry);
+  }
+  return [...entries.values()].sort(
+    (a, b) => (a.slot === SERIES) - (b.slot === SERIES) || b.tokens - a.tokens,
+  );
+}
+
+function columns(view) {
+  return view.buckets.map((b) => ({
+    date: b.key, start: b.start, end: b.end,
+    total: view.series.reduce((sum, s) => sum + s.get(b.key), 0),
+  }));
+}
+
+function niceCeil(value) {
+  const step = 10 ** Math.floor(Math.log10(value));
+  return [1, 2, 5, 10].map((n) => n * step).find((n) => n >= value * (1 - 1e-9));
+}
+
+/** Linear to 80% of the height, then log for the outliers that dominate a year. */
+function yScale(values, daysPerColumn) {
+  const threshold = DAY_THRESHOLD * daysPerColumn;
+  const positive = values.filter((v) => v > 0).sort((a, b) => a - b);
+  if (!positive.length) return { threshold: null, ticks: [], at: () => 0 };
+  const max = positive[positive.length - 1];
+  if (max <= threshold * 1.2) {
+    const top = niceCeil(max);
+    return { threshold: null, ticks: [top / 2, top], at: (v) => Math.min(Math.max(v, 0) / top, 1) };
+  }
+  const span = Math.log10(max) - Math.log10(threshold);
+  const at = (v) =>
+    v <= threshold
+      ? (Math.max(v, 0) / threshold) * LINEAR_SHARE
+      : LINEAR_SHARE + (1 - LINEAR_SHARE) * Math.min((Math.log10(v) - Math.log10(threshold)) / span, 1);
+  const ticks = [threshold / 2, threshold];
+  for (let decade = 10 ** Math.ceil(Math.log10(threshold * 1.0001)); decade < max; decade *= 10) {
+    if (at(decade) - LINEAR_SHARE > 0.06 && 1 - at(decade) > 0.04) {
+      ticks.push(decade);
+      break;
+    }
+  }
+  return { threshold, ticks, at };
+}
+
+/* ------------------------------------------------------------------- chart */
+
+/** Draw the stacked chart into a rect on a 2D context. Shared by page and card. */
+function drawChart(ctx, rect, view, options) {
+  const { x, y, width, height } = rect;
+  const o = Object.assign({ ticks: true, labels: true, radius: 3, grid: true, axisColor: "#e3e5df",
+    mutedColor: "#6b7067", font: "10px ui-monospace, SFMono-Regular, Menlo, monospace" }, options);
+  const pad = { top: 10, right: 2, bottom: o.labels ? 22 : 2, left: o.ticks ? 44 : 2 };
+  const plotW = width - pad.left - pad.right;
+  const plotH = height - pad.top - pad.bottom;
+  const cols = columns(view);
+  if (!cols.length) return;
+  const ys = yScale(cols.map((c) => c.total), view.weekly ? 7 : 1);
+  const slotWidth = plotW / cols.length;
+  const gap = slotWidth > 8 ? 2 : slotWidth > 3 ? 1 : 0;
+  const barWidth = Math.max(slotWidth - gap, 1);
+  const scale = (v) => ys.at(v) * plotH;
+  const baseY = y + pad.top + plotH;
+
+  if (o.grid) {
+    ctx.strokeStyle = o.axisColor;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x + pad.left, baseY + 0.5);
+    ctx.lineTo(x + width - pad.right, baseY + 0.5);
+    ctx.stroke();
+  }
+  ctx.font = o.font;
+  ctx.fillStyle = o.mutedColor;
+  for (const tick of ys.ticks) {
+    const ty = baseY - scale(tick);
+    if (o.grid) {
+      ctx.save();
+      ctx.setLineDash(tick === ys.threshold ? [3, 3] : []);
+      ctx.strokeStyle = tick === ys.threshold ? "#c9ccc4" : o.axisColor;
+      ctx.beginPath();
+      ctx.moveTo(x + pad.left, ty + 0.5);
+      ctx.lineTo(x + width - pad.right, ty + 0.5);
+      ctx.stroke();
+      ctx.restore();
+    }
+    if (o.ticks) {
+      ctx.textAlign = "right";
+      ctx.textBaseline = "middle";
+      ctx.fillText(compact(tick), x + pad.left - 8, ty);
+    }
+  }
+
+  cols.forEach((col, index) => {
+    const bx = x + pad.left + index * slotWidth + gap / 2;
+    let below = 0;
+    const stacked = view.series
+      .map((s, slot) => [slot, s.get(col.date)])
+      .filter(([, value]) => value > 0);
+    stacked.forEach(([slot, value], order) => {
+      const full = scale(below + value) - scale(below);
+      below += value;
+      const segment = order < stacked.length - 1 ? full - (gap ? 1 : 0) : full;
+      if (segment < 0.4) return;
+      const segTop = baseY - scale(below);
+      const r = Math.min(o.radius, barWidth / 2, segment);
+      ctx.fillStyle = slotColor(slot);
+      ctx.beginPath();
+      if (order === stacked.length - 1 && r > 0.5) {
+        ctx.moveTo(bx, segTop + segment);
+        ctx.lineTo(bx, segTop + r);
+        ctx.quadraticCurveTo(bx, segTop, bx + r, segTop);
+        ctx.lineTo(bx + barWidth - r, segTop);
+        ctx.quadraticCurveTo(bx + barWidth, segTop, bx + barWidth, segTop + r);
+        ctx.lineTo(bx + barWidth, segTop + segment);
+        ctx.closePath();
+      } else {
+        ctx.rect(bx, segTop, barWidth, segment);
+      }
+      ctx.fill();
+    });
+  });
+
+  if (!o.labels) return;
+  const wanted = [];
+  for (let i = cols.length - 1; i >= 0; i -= view.weekly ? 4 : 7) wanted.push(i);
+  const placed = [];
+  for (const i of wanted) if (placed.every((other) => Math.abs(other - i) * slotWidth >= 76)) placed.push(i);
+  placed.sort((a, b) => a - b).forEach((index, order) => {
+    const cx = x + pad.left + (index + 0.5) * slotWidth;
+    let anchor = "middle";
+    let tx = cx;
+    if (index === cols.length - 1 && cx > x + width - 30) { anchor = "end"; tx = x + width; }
+    else if (cx < x + pad.left + 20) { anchor = "start"; tx = x + pad.left; }
+    const ref = order ? cols[placed[order - 1]].date : view.end;
+    const labelText = dayLabel(cols[index].date) + (ref.slice(0, 4) !== cols[index].date.slice(0, 4) ? ` ’${cols[index].date.slice(2, 4)}` : "");
+    ctx.textAlign = anchor;
+    ctx.textBaseline = "alphabetic";
+    ctx.fillStyle = o.mutedColor;
+    ctx.fillText(labelText, tx, y + height - 4);
+  });
+}
+
+/* ------------------------------------------------------------- share card */
+const CARD_FORMATS = {
+  wide: { width: 1200, height: 630 },
+  tall: { width: 1080, height: 1350 },
+};
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+function brandMark(ctx, x, y, size, color) {
+  const r = size * 0.22;
+  roundRect(ctx, x, y, size, size, r);
+  ctx.fillStyle = color;
+  ctx.fill();
+  // Three rising bars, centred: 3 * 0.14 + 2 * 0.04 leaves 0.56 of the tile.
+  const bar = (i, h, c) => {
+    ctx.fillStyle = c;
+    roundRect(ctx, x + size * (0.22 + i * 0.18), y + size - h - size * 0.17, size * 0.14, h, size * 0.03);
+    ctx.fill();
+  };
+  bar(0, size * 0.3, "#2a78d6");
+  bar(1, size * 0.48, "#1baf7a");
+  bar(2, size * 0.66, "#eda100");
+}
+
+function drawQr(ctx, text, x, y, size) {
+  if (typeof qrcode !== "function") return false;
+  try {
+    const qr = qrcode(0, "M");
+    qr.addData(text);
+    qr.make();
+    const count = qr.getModuleCount();
+    const cell = size / (count + 2);
+    ctx.fillStyle = "#ffffff";
+    roundRect(ctx, x - cell, y - cell, size + cell * 2, size + cell * 2, 6);
+    ctx.fill();
+    ctx.fillStyle = "#1f211e";
+    for (let r = 0; r < count; r++)
+      for (let c = 0; c < count; c++)
+        if (qr.isDark(r, c)) ctx.fillRect(x + c * cell, y + r * cell, Math.ceil(cell), Math.ceil(cell));
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+function drawCard(canvas, format, view, context) {
+  const { width: W, height: H } = CARD_FORMATS[format];
+  const dpr = 2;
+  canvas.width = W * dpr;
+  canvas.height = H * dpr;
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  const tall = format === "tall";
+  const M = tall ? 64 : 56;
+  const ink = "#1f211e";
+  const muted = "#6b7067";
+  const line = "#e3e5df";
+  const sans = (weight, size) =>
+    `${weight} ${size}px -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Helvetica, Arial, sans-serif`;
+
+  ctx.fillStyle = "#fbfbf9";
+  ctx.fillRect(0, 0, W, H);
+
+  /* header: the brand, always first */
+  const markSize = tall ? 40 : 34;
+  brandMark(ctx, M, M, markSize, ink);
+  ctx.fillStyle = ink;
+  ctx.font = sans(650, tall ? 34 : 29);
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText(BRAND.name, M + markSize + 14, M + markSize / 2 + 1);
+
+  ctx.textAlign = "right";
+  ctx.font = sans(500, tall ? 21 : 18);
+  ctx.fillStyle = muted;
+  ctx.fillText(BRAND.url, W - M, M + markSize / 2 + 1);
+
+  /* the number */
+  const statsY = tall ? M + markSize + 118 : M + markSize + 74;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = ink;
+  ctx.font = sans(700, tall ? 120 : 92);
+  const tokensText = compact(view.total.tokens);
+  const tokensWidth = ctx.measureText(tokensText).width;
+  ctx.fillText(tokensText, M, statsY);
+  if (!tall) {
+    ctx.fillStyle = muted;
+    ctx.font = sans(600, 42);
+    ctx.textBaseline = "top";
+    ctx.fillText("tokens", M + tokensWidth + 14, statsY - 70);
+    ctx.textBaseline = "alphabetic";
+  }
+
+  const subY = statsY + (tall ? 46 : 40);
+  ctx.font = sans(500, tall ? 26 : 23);
+  ctx.fillStyle = muted;
+  const period = view.start === view.end
+    ? dayLabel(view.start)
+    : dayLabel(view.start) + " – " + dayLabel(view.end) + " " + view.end.slice(0, 4);
+  const hostsLabel = context.hostCount > 1 ? `${context.hostCount} machines · ` : "";
+  ctx.fillText(
+    `${hostsLabel}${period}`,
+    M,
+    subY,
+  );
+
+  const usdText = view.total.usd >= 1 ? usd(view.total.usd) : "$" + view.total.usd.toFixed(2);
+  if (tall) {
+    /* Tall cards stack the two numbers: no room to sit them side by side. */
+    ctx.textAlign = "left";
+    ctx.fillStyle = ink;
+    ctx.font = sans(700, 78);
+    ctx.fillText(usdText, M, subY + (tall ? 78 : 0));
+    ctx.font = sans(500, 24);
+    ctx.fillStyle = muted;
+    ctx.fillText("at API list price", M, subY + 120);
+  } else {
+    ctx.textAlign = "right";
+    ctx.fillStyle = ink;
+    ctx.font = sans(650, 52);
+    ctx.fillText(usdText, W - M, statsY);
+    ctx.font = sans(500, 17);
+    ctx.fillStyle = muted;
+    ctx.fillText("at API list price", W - M, statsY + 30);
+  }
+
+  /* chart */
+  const chartTop = statsY + (tall ? 250 : 96);
+  const footerH = tall ? 156 : 120;
+  const chartBottom = H - footerH;
+  drawChart(ctx, { x: M, y: chartTop, width: W - M * 2, height: chartBottom - chartTop }, view, {
+    ticks: true, labels: true, radius: tall ? 4 : 3, mutedColor: muted, axisColor: line,
+    font: sans(400, tall ? 15 : 12),
+  });
+
+  if (!tall) {
+    ctx.strokeStyle = line;
+    ctx.beginPath();
+    ctx.moveTo(M, H - 92.5);
+    ctx.lineTo(W - M, H - 92.5);
+    ctx.stroke();
+  }
+
+  /* footer: tools, brand line, QR */
+  const footY = tall ? H - footerH + 34 : H - 54;
+  ctx.textAlign = "left";
+  ctx.font = sans(500, tall ? 19 : 15);
+  ctx.fillStyle = muted;
+  const tools = view.tools.slice(0, 4).map(([tool, value]) => `${toolName(tool)} ${pct(value / view.total.tokens)}`);
+  ctx.fillText(tools.join("  ·  "), M, footY);
+
+  ctx.font = sans(600, tall ? 19 : 15);
+  ctx.fillStyle = ink;
+  const madeWith = `made with ${BRAND.name} · ${BRAND.url}`;
+  ctx.fillText(madeWith, M, footY + (tall ? 34 : 24));
+
+  const qrSize = tall ? 116 : 96;
+  const qrX = W - M - qrSize;
+  const qrY = footY + (tall ? -12 : -16);
+  const drawn = drawQr(ctx, BRAND_LINK, qrX, qrY, qrSize);
+  if (!drawn) {
+    ctx.textAlign = "right";
+    ctx.font = sans(600, 16);
+    ctx.fillStyle = muted;
+    ctx.fillText(BRAND.url, W - M, footY + 40);
+  }
+
+  /* the one line that makes it an ad even when cropped */
+  if (tall) {
+    ctx.textAlign = "center";
+    ctx.font = sans(500, 20);
+    ctx.fillStyle = muted;
+    ctx.fillText(BRAND.tagline, W / 2, H - 26);
+  }
+}
+
+/* -------------------------------------------------------------- page state */
+const state = { files: [], rows: [], prices: null, hosts: [], days: 60, view: null, slotMap: new Map(), format: "wide" };
+
+const $ = (id) => document.getElementById(id);
+const drop = $("drop");
+
+function refresh() {
+  const merged = mergeHosts(state.files);
+  state.rows = withCost(merged.rows, state.prices);
+  state.hosts = merged.hosts;
+  state.slotMap = slots(state.rows);
+  const has = state.rows.length > 0;
+  $("report").classList.toggle("is-on", has);
+  $("share").hidden = !has;
+  drop.style.display = state.files.length ? "none" : "";
+  if (!has) return;
+  render();
+  renderCard();
+}
+
+function render() {
+  state.view = summarize(state.rows, state.days, state.slotMap);
+  const view = state.view;
+  if (!view) return;
+
+  const unpriced = view.total.unpriced > 0;
+  $("stats").replaceChildren(
+    stat("Tokens", compact(view.total.tokens) + (unpriced ? " <small>+unpriced</small>" : "")),
+    stat("At API list price", price(view.total.usd)),
+    stat("Machines", String(state.hosts.length)),
+    stat("Days", String(view.buckets.length)),
+  );
+
+  const canvas = $("chart");
+  const cssWidth = canvas.parentElement.clientWidth || 900;
+  const cssHeight = cssWidth < 560 ? 200 : 260;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = cssWidth * dpr;
+  canvas.height = cssHeight * dpr;
+  canvas.style.height = cssHeight + "px";
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  drawChart(ctx, { x: 0, y: 0, width: cssWidth, height: cssHeight }, view, {});
+
+  $("legend").replaceChildren(
+    ...legendEntries(view).map((entry) => {
+      const li = document.createElement("li");
+      const dot = document.createElement("i");
+      dot.className = "dot";
+      dot.style.background = slotColor(entry.slot);
+      const name = document.createElement("span");
+      name.textContent = entry.slot === SERIES ? "other" : entry.model;
+      const small = document.createElement("small");
+      small.textContent = `${compact(entry.tokens)} · ${price(entry.usd)}`;
+      li.append(dot, name, small);
+      return li;
+    }),
+  );
+
+  $("machines").replaceChildren(
+    ...state.files.map((file) => {
+      const li = document.createElement("li");
+      const name = document.createElement("b");
+      name.textContent = file.host;
+      const grow = document.createElement("span");
+      grow.className = "grow";
+      const tokens = file.rows.reduce((sum, row) => sum + tokensOf(row), 0);
+      grow.textContent = `${file.rows.length} rows · ${compact(tokens)} tokens${file.generatedAt ? " · " + file.generatedAt.slice(0, 10) : ""}`;
+      const remove = document.createElement("button");
+      remove.type = "button";
+      remove.textContent = "×";
+      remove.title = "Remove this file";
+      remove.setAttribute("aria-label", `Remove ${file.host}`);
+      remove.addEventListener("click", () => {
+        state.files = state.files.filter((other) => other !== file);
+        refresh();
+      });
+      li.append(name, grow, remove);
+      return li;
+    }),
+  );
+}
+
+function stat(key, value) {
+  const div = document.createElement("div");
+  div.className = "stat";
+  const k = document.createElement("div");
+  k.className = "k";
+  k.textContent = key;
+  const v = document.createElement("div");
+  v.className = "v";
+  v.innerHTML = value;
+  div.append(k, v);
+  return div;
+}
+
+function renderCard() {
+  if (!state.view) return;
+  drawCard($("card"), state.format, state.view, { hostCount: state.hosts.length });
+}
+
+/* ------------------------------------------------------------------- files */
+async function addFiles(fileList) {
+  const problems = [];
+  for (const file of fileList) {
+    let parsed;
+    try {
+      parsed = parseSnapshot(await file.text(), file.name.replace(/^tokendust-/, "").replace(/\.json$/, ""));
+    } catch (error) {
+      problems.push(`${file.name}: ${error.message}`);
+      continue;
+    }
+    if (parsed.prices) {
+      state.prices = parsed.prices;
+      continue;
+    }
+    if (!parsed.rows || !parsed.rows.length) {
+      problems.push(`${file.name}: no usage rows`);
+      continue;
+    }
+    const host = parsed.host || "machine";
+    const kept = state.files.filter((other) => other.host !== host);
+    state.files = kept.concat({ ...parsed, host });
+  }
+  refresh();
+  if (problems.length) alert("Could not read:\n" + problems.join("\n"));
+}
+
+$("pick").addEventListener("click", () => $("file").click());
+$("file").addEventListener("change", (event) => {
+  addFiles(event.target.files);
+  event.target.value = "";
+});
+for (const type of ["dragenter", "dragover"]) {
+  drop.addEventListener(type, (event) => {
+    event.preventDefault();
+    drop.classList.add("is-over");
+  });
+}
+for (const type of ["dragleave", "drop"]) {
+  drop.addEventListener(type, (event) => {
+    event.preventDefault();
+    if (type === "drop") addFiles(event.dataTransfer.files);
+    drop.classList.remove("is-over");
+  });
+}
+window.addEventListener("dragover", (event) => event.preventDefault());
+window.addEventListener("drop", (event) => {
+  event.preventDefault();
+  if (event.dataTransfer && event.dataTransfer.files.length) addFiles(event.dataTransfer.files);
+});
+
+$("clear").addEventListener("click", () => {
+  state.files = [];
+  refresh();
+});
+
+document.querySelectorAll(".controls [data-range]").forEach((button) => {
+  button.addEventListener("click", () => {
+    state.days = Number(button.dataset.range);
+    document.querySelectorAll(".controls [data-range]").forEach((other) =>
+      other.setAttribute("aria-pressed", String(other === button)),
+    );
+    render();
+    renderCard();
+  });
+});
+
+document.querySelectorAll("[data-format]").forEach((button) => {
+  button.addEventListener("click", () => {
+    state.format = button.dataset.format;
+    document.querySelectorAll("[data-format]").forEach((other) =>
+      other.setAttribute("aria-pressed", String(other === button)),
+    );
+    renderCard();
+  });
+});
+
+$("download").addEventListener("click", () => {
+  $("card").toBlob((blob) => {
+    if (!blob) return;
+    const link = document.createElement("a");
+    link.download = `${BRAND.name}-${iso(Date.now())}-${state.format}.png`;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(link.href), 4000);
+  }, "image/png");
+});
+
+$("copy").addEventListener("click", async () => {
+  const note = $("copy-note");
+  try {
+    const blob = await new Promise((resolve) => $("card").toBlob(resolve, "image/png"));
+    await navigator.clipboard.write([new ClipboardItem({ "image/png": blob })]);
+    note.textContent = "Copied — paste it anywhere.";
+  } catch (error) {
+    note.textContent = "This browser blocked clipboard images; use Download.";
+  }
+  setTimeout(() => (note.textContent = ""), 4000);
+});
+
+/* tooltip on the page chart */
+(() => {
+  const board = $("board");
+  const tip = $("tip");
+  function show(event) {
+    if (!state.view) return;
+    const canvas = $("chart");
+    const rect = canvas.getBoundingClientRect();
+    const cssWidth = rect.width;
+    const cssHeight = rect.height;
+    const cols = columns(state.view);
+    const pad = { top: 10, right: 0, bottom: 22, left: 44 };
+    const slotWidth = (cssWidth - pad.left - pad.right) / cols.length;
+    const index = Math.floor((event.clientX - rect.left - pad.left) / slotWidth);
+    if (index < 0 || index >= cols.length) return hide();
+    const col = cols[index];
+    const entries = state.view.byDay.get(col.date) || [];
+    const head = document.createElement("div");
+    head.className = "head";
+    const date = document.createElement("strong");
+    date.textContent = col.start === col.end ? dayLabel(col.date) : dayLabel(col.start) + "–" + dayLabel(col.end);
+    const sum = document.createElement("span");
+    sum.textContent = `${compact(col.total)} · ${price(entries.reduce((s, e) => (e.usd === null ? s : s + e.usd), 0))}`;
+    head.append(date, sum);
+    const list = document.createElement("div");
+    list.className = "list";
+    for (const entry of entries.slice(0, 8)) {
+      const row = document.createElement("div");
+      row.className = "row";
+      const name = document.createElement("span");
+      const dot = document.createElement("i");
+      dot.className = "dot";
+      dot.style.background = slotColor(entry.slot);
+      dot.style.marginRight = "7px";
+      name.append(dot, document.createTextNode(entry.model));
+      const tool = document.createElement("span");
+      tool.textContent = toolName(entry.tool);
+      const tokens = document.createElement("b");
+      tokens.textContent = compact(entry.tokens);
+      const money = document.createElement("span");
+      money.className = "usd";
+      money.textContent = price(entry.usd);
+      row.append(name, tool, tokens, money);
+      list.append(row);
+    }
+    tip.replaceChildren(head, list);
+    tip.hidden = false;
+    const left = event.clientX - rect.left + 16;
+    tip.style.left = Math.max(0, left + tip.offsetWidth > rect.width ? event.clientX - rect.left - tip.offsetWidth - 16 : left) + "px";
+    tip.style.top = "0px";
+    void cssHeight;
+  }
+  function hide() {
+    tip.hidden = true;
+  }
+  board.addEventListener("pointermove", show);
+  board.addEventListener("pointerleave", hide);
+})();
+
+let resizeTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => state.view && render(), 120);
+});
+
+refresh();
+</script>
+</body>
+</html>
