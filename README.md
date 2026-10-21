@@ -57,6 +57,7 @@ Nothing is uploaded. The page is one file and runs entirely in the tab.
 | Codex | `~/.codex/sessions/**/*.jsonl` | cumulative snapshots deduped; a sub-agent's replay of its parent is not counted again |
 | OpenCode | `opencode.db` under `$XDG_DATA_HOME` | reasoning tokens billed as output |
 | Gemini CLI | `~/.gemini/tmp/**/chats/*.json` | per-message usage; the file's own totals are ignored |
+| pi | `~/.pi/agent/sessions/**/*.jsonl` | deduped by provider response id, so forked sessions are not counted twice |
 | Cursor | Cursor's dashboard, `--cursor` | server-side only, ~3.5 months, per account: point one machine at it, not all |
 
 **What it cannot count:** anything that only exists in a browser (the ChatGPT, Claude and Gemini web
@@ -94,7 +95,7 @@ covers; tokendust's difference is the card and the multi-machine merge.
 
 ## Adding a tool
 
-`scan.py` is ~450 lines with one function per source, each adding rows via `totals.add(day, tool,
+`scan.py` is ~520 lines with one function per source, each adding rows via `totals.add(day, tool,
 model, input, cache_read, cache_write, output)`. Add a function, add it to the loop in `main()` and
 to `TOOLS`, and teach the board a display name in `TOOL_NAMES`. Prices go in `prices.json`; a model
 that is missing is counted, not priced.
@@ -110,6 +111,7 @@ run `python3 build.py`, and every card from then on carries the new name, link a
 ```bash
 python3 build.py          # inline prices.json + vendor/qrcode.js into index.html
 node test_page.js         # 12 checks: merge rules, pricing, ccusage parsing, chart, card
+python3 test_scan.py      # 5 checks: pi parsing, dedupe, session dirs
 node tools/screenshot.js scan.json card.png wide .
 ```
 

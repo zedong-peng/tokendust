@@ -1,5 +1,5 @@
 {
-  "_comment": "Official standard-tier USD per 1M tokens: [input, cache_read, cache_write, output]. Anthropic cache writes use the 5-minute rate (1.25x input); OpenAI bills cache writes as input. Long-context surcharges are ignored. Checked 2026-09-30; 4.6/4.5 series per Anthropic announcements, gpt-5.6-luna post-Jul-30 rate.",
+  "_comment": "Official standard-tier USD per 1M tokens: [input, cache_read, cache_write, output]. Anthropic cache writes use the 5-minute rate (1.25x input); OpenAI bills cache writes as input. Long-context surcharges are ignored. Checked 2026-09-30; pi catalog rates for deepseek and kimi checked 2026-10-22.",
   "claude-fable-5-1": [10, 0.25, 12.5, 50],
   "claude-opus-5-5": [4, 0.2, 5, 20],
   "claude-opus-5": [5, 0.5, 6.25, 25],
@@ -21,10 +21,13 @@
   "gpt-5.2": [1.75, 0.175, 1.75, 14],
   "gpt-4o-mini": [0.15, 0.075, 0.15, 0.6],
   "muse-spark-1.3": [1.25, 0.15, 1.25, 4.25],
+  "muse-spark-1.3-contributor": [0.1, 0.002, 0, 0.2],
+  "muse-spark-1.3-contributor-free": [0, 0, 0, 0],
+  "deepseek-v4.1-flash": [0.15, 0.003, 0, 0.6],
+  "deepseek-flash": [0.3, 0.006, 0, 1.2],
+  "kimi-k3": [3, 0.3, 0, 15],
   "_aliases": {
-    "_comment": "Models without a confirmed list price of their own, priced as another model. Muse Spark 1.3 Contributor has no confirmed rate; use the standard 1.3 rate. Dotted 4.x spellings and -thinking suffixes map to the same base model.",
-    "muse-spark-1.3-contributor": "muse-spark-1.3",
-    "muse-spark-1.3-contributor-free": "muse-spark-1.3",
+    "_comment": "Models without a confirmed list price of their own, priced as another model. Dotted 4.x spellings and -thinking suffixes map to the same base model.",
     "claude-opus-4.6": "claude-opus-4-6",
     "claude-opus-4-6-thinking": "claude-opus-4-6",
     "claude-opus-4.6-thinking": "claude-opus-4-6",

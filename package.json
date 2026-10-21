@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "build": "python3 build.py",
-    "test": "node test_page.js",
+    "test": "node test_page.js && python3 test_scan.py",
     "scan": "python3 scan.py"
   }
 }
