@@ -28,11 +28,11 @@ Next: open index.html and drop the file on it.
    nothing else — no `pip install`, no Node, no account.
 
    ```bash
-   curl -fsSL https://zedongpeng.com/assets/tokendust/scan.py | python3 -
+   curl -fsSL https://zedongpeng.com/tokendust/scan.py | python3 -
    ```
 
    Flags go after the dash: `... | python3 - --days 90`, or `--cursor` to also read Cursor's
-   dashboard (the only network call). Prefer a file? `curl -fsSLO https://zedongpeng.com/assets/tokendust/scan.py`
+   dashboard (the only network call). Prefer a file? `curl -fsSLO https://zedongpeng.com/tokendust/scan.py`
    then `python3 scan.py`.
 
    It writes `tokendust-<hostname>.json` where you ran it. That file holds daily totals per tool and
